@@ -1,0 +1,72 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-file: "3"
+    max-size: "10m"
+
+services:
+  # ⚙️ Initialization service
+  # Description: Initializes MinIO buckets and prepares environment before API/worker startup.
+  init:
+    image: minio/mc:latest
+    container_name: minio_init
+    env_file:
+      - .env
+    volumes:
+      - ./scripts:/scripts:ro 
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
+    depends_on:
+      minio:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: none
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    networks:
+      - minio-network
+
+  # 🗂️ MinIO
+  # Description: S3-compatible object storage for storing uploaded and converted documents.
+  minio:
+    image: minio/minio:latest
+    container_name: minio_server
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9090"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - minio-network
+
+networks:
+  minio-network:
+
+volumes:
+  minio-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/data/minio
+      o: bind
