@@ -1,8 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-source /scripts/general_utils.sh
-source /scripts/minio_utils.sh
+# Resolve directory of THIS file (works both when executed or sourced)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
+
+# Ensure helper exists
+if [ ! -f "$SCRIPT_DIR/general_utils.sh" ]; then
+  echo "🔴 Error: $SCRIPT_DIR/general_utils.sh not found" >&2
+  # If this file was sourced, prefer `return` to avoid exiting the caller shell
+  return 1 2>/dev/null || exit 1
+fi
+
+source "$SCRIPT_DIR/general_utils.sh"
+source "$SCRIPT_DIR/minio_utils.sh"
 
 ensure_var_set "MINIO_ROOT_USER"
 ensure_var_set "MINIO_ROOT_PASSWORD"
@@ -34,11 +44,11 @@ main() {
     fi
   done
 
-  log_info "✅ Docs converter initialization completed successfully."
+  log_info "✅ Minio initialization completed successfully."
 }
 
 # Main execution
 if ! main "$@"; then
-  log_error "Docs converterbootstrap failed"
+  log_error "Minio bootstrap failed"
   exit 1
 fi

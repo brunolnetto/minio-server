@@ -126,14 +126,13 @@ write_policy_file() {
     {
       "Effect": "Allow",
       "Principal": {"AWS":["*"]},
-      "Action": ["s3:GetBucketLocation","s3:ListBucket"],
-      "Resource": ["arn:aws:s3:::*"]
-    },
-    {
-      "Effect": "Allow",
-      "Principal": {"AWS":["*"]},
-      "Action": ["s3:GetObject"],
-      "Resource": ["arn:aws:s3:::*/*"]
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": ["arn:aws:s3:::*","arn:aws:s3:::*/*"]
     }
   ]
 }
